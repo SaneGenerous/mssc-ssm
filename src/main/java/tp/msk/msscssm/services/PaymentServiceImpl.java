@@ -3,6 +3,7 @@ package tp.msk.msscssm.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.config.StateMachineFactory;
+import org.springframework.statemachine.support.DefaultStateMachineContext;
 import org.springframework.stereotype.Service;
 import tp.msk.msscssm.domain.Payment;
 import tp.msk.msscssm.domain.PaymentEvent;
@@ -24,16 +25,36 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> preAuth(Long paymentId) {
+        StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
+
         return null;
     }
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> authorizePayment(Long paymentId) {
+        StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
         return null;
     }
 
     @Override
     public StateMachine<PaymentState, PaymentEvent> declineAuth(Long paymentId) {
+        StateMachine<PaymentState, PaymentEvent> sm = build(paymentId);
         return null;
+    }
+
+    public StateMachine<PaymentState, PaymentEvent> build(Long paymentId){
+        Payment payment = paymentRepository.getOne(paymentId);
+
+        StateMachine<PaymentState, PaymentEvent> sm = stateMachineFactory.getStateMachine(Long.toString(payment.getId()));
+
+        sm.stop();
+
+        sm.getStateMachineAccessor()
+                .doWithAllRegions(sma -> {
+                    sma.resetStateMachine(new DefaultStateMachineContext<>(payment.getState(), null, null, null));
+                });
+        sm.start();
+
+        return sm;
     }
 }
